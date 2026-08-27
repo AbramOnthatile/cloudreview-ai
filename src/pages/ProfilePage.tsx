@@ -1,0 +1,21 @@
+import { useEffect, useState } from 'react'
+import { useAuth } from '../auth/useAuth'
+import { getFavoriteProducts } from '../lib/favorites'
+import { supabase } from '../lib/supabase'
+import type { ProductWithStats } from '../lib/products'
+
+type UserReview = { id: string; product_id: string; rating: number; title: string; content: string; created_at: string; productName: string }
+
+export function ProfilePage({ onNavigate }: { onNavigate: (path: string) => void }) {
+  const { user } = useAuth()
+  const [profile, setProfile] = useState<{ full_name: string | null; username: string | null } | null>(null)
+  const [reviews, setReviews] = useState<UserReview[]>([])
+  const [favorites, setFavorites] = useState<ProductWithStats[]>([])
+  const [error, setError] = useState('')
+  useEffect(() => { if (!user) return; void Promise.all([supabase.from('profiles').select('full_name, username').eq('id', user.id).maybeSingle(), supabase.from('reviews').select('id, product_id, rating, title, content, created_at').eq('user_id', user.id).order('created_at', { ascending: false }), getFavoriteProducts(user.id)]).then(async ([profileResult, reviewResult, favoriteProducts]) => { if (profileResult.error || reviewResult.error) throw new Error(); const productIds = (reviewResult.data ?? []).map((review) => review.product_id); const { data: products } = productIds.length ? await supabase.from('products').select('id, name').in('id', productIds) : { data: [] }; const names = new Map((products ?? []).map((product) => [product.id, product.name])); setProfile(profileResult.data); setReviews((reviewResult.data ?? []).map((review) => ({ ...review, productName: names.get(review.product_id) ?? 'Product' }))); setFavorites(favoriteProducts) }).catch(() => setError('Your profile activity is unavailable right now. Please try again.')) }, [user])
+  const average = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0
+  return <main className="account-page profile-page"><p className="section-kicker">Your account</p><h1>Profile</h1>{error && <p className="form-error" role="alert">{error}</p>}<div className="profile-details"><Detail label="Full name" value={profile?.full_name ?? String(user?.user_metadata.full_name ?? 'Not set')} /><Detail label="Username" value={profile?.username ?? String(user?.user_metadata.username ?? 'Not set')} /><Detail label="Email" value={user?.email ?? ''} /><Detail label="Joined" value={user?.created_at ? new Date(user.created_at).toLocaleDateString() : ''} /></div><div className="profile-stats"><Stat label="Total reviews" value={String(reviews.length)} /><Stat label="Total favorites" value={String(favorites.length)} /><Stat label="Average rating given" value={average ? `${average.toFixed(1)} ★` : '—'} /></div><section className="activity-section"><div><p className="section-kicker">Your activity</p><h2>Recent reviews</h2></div>{reviews.length ? reviews.map((review) => <button className="activity-row" type="button" key={review.id} onClick={() => onNavigate(`#product/${review.product_id}`)}><span><strong>{review.productName}</strong><small>{review.title}</small></span><span><b>{review.rating} ★</b><small>{new Date(review.created_at).toLocaleDateString()}</small></span></button>) : <p className="state-message">You have not written any reviews yet.</p>}</section><section className="activity-section"><div><p className="section-kicker">Saved for later</p><h2>Recent favorites</h2></div>{favorites.length ? <div className="mini-favorites">{favorites.slice(0, 3).map((product) => <button type="button" key={product.id} onClick={() => onNavigate(`#product/${product.id}`)}>{product.name}</button>)}</div> : <p className="state-message">No favorite products yet.</p>}</section></main>
+}
+
+function Detail({ label, value }: { label: string; value: string }) { return <div><span>{label}</span><strong>{value}</strong></div> }
+function Stat({ label, value }: { label: string; value: string }) { return <div><span>{label}</span><strong>{value}</strong></div> }

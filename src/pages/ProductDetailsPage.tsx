@@ -1,0 +1,31 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../auth/useAuth'
+import { AIReviewAnalysis } from '../components/AIReviewAnalysis'
+import { FavoriteButton } from '../components/FavoriteButton'
+import { ReviewCard } from '../components/ReviewCard'
+import { ReviewForm } from '../components/ReviewForm'
+import { useReviewAnalysis } from '../lib/analysis'
+import { deleteReview, useReviews } from '../lib/reviews'
+import { getProduct, type ProductWithStats } from '../lib/products'
+
+export function ProductDetailsPage({ id, onNavigate }: { id: string; onNavigate: (path: string) => void }) {
+  const [product, setProduct] = useState<ProductWithStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string>()
+  const [sort, setSort] = useState('recent')
+  const [message, setMessage] = useState('')
+  const { user } = useAuth()
+  const { reviews, loading: reviewsLoading, error: reviewsError, reload } = useReviews(id)
+  const analysisState = useReviewAnalysis(id, reviews.length)
+  useEffect(() => { let active = true; void getProduct(id).then((data) => { if (active) setProduct(data) }).catch(() => { if (active) setError('Product details are unavailable right now.') }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [id])
+  const stats = useMemo(() => { const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }; reviews.forEach((review) => { distribution[review.rating] += 1 }); return { count: reviews.length, average: reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0, distribution } }, [reviews])
+  const sortedReviews = useMemo(() => [...reviews].sort((a, b) => sort === 'highest' ? b.rating - a.rating : sort === 'lowest' ? a.rating - b.rating : new Date(b.created_at).getTime() - new Date(a.created_at).getTime()), [reviews, sort])
+  const startReview = () => { if (!user) { setMessage('Please log in to write a review.'); return } setMessage(''); setEditingId(undefined); setShowForm(true) }
+  const afterSave = async (savedMessage: string) => { setShowForm(false); setEditingId(undefined); setMessage(savedMessage); await reload(); setProduct(await getProduct(id)) }
+  const removeReview = async (reviewId: string) => { if (!user || !window.confirm('Delete your review?')) return; const { error: deleteError } = await deleteReview(reviewId, user.id); if (deleteError) { setMessage('Unable to delete your review. Please try again.'); return } setMessage('Review deleted.'); await reload(); setProduct(await getProduct(id)) }
+  if (loading) return <main className="account-page"><p className="state-message">Loading product...</p></main>
+  if (error || !product) return <main className="account-page"><p className="state-message form-error">{error || 'Product not found.'}</p><a className="dark-link" href="#products">Back to products ↗</a></main>
+  return <main className="details-page"><a className="back-link" href="#products">← All products</a><div className="details-hero"><div className="details-image">{product.image_url ? <img src={product.image_url} alt={product.name} /> : <span className="visual-shape" />}</div><div className="details-copy"><p className="section-kicker">{product.category ?? 'Other'}</p><h1>{product.name}</h1><p className="product-brand">{product.brand ?? 'Independent brand'}</p><p className="details-description">{product.description || 'No description has been added yet.'}</p><div className="details-price">{product.price === null ? 'Price unavailable' : `$${product.price.toFixed(2)}`}<span>{product.source ? `From ${product.source}` : 'Source not listed'}</span></div><div className="details-rating"><strong>{stats.average ? stats.average.toFixed(1) : 'New'}</strong><span className="stars">★★★★★</span><span>Based on {stats.count} reviews</span></div><FavoriteButton productId={id} onLogin={() => onNavigate('#login')} /></div></div><AIReviewAnalysis reviewCount={stats.count} analysis={analysisState.analysis} loading={analysisState.loading} generating={analysisState.generating} error={analysisState.error} onGenerate={() => void analysisState.generate()} /><section className="reviews-section"><div className="reviews-heading"><div><p className="section-kicker">Community signal</p><h2>Reviews</h2><p>{stats.average ? `${stats.average.toFixed(1)} ★ based on ${stats.count} reviews` : 'No reviews yet. Be the first to share your experience.'}</p></div><button className="clear-filters" type="button" onClick={startReview}>{user ? 'Write a review' : 'Log in to review'}</button></div>{message && <p className="form-success" role="status">{message}{!user && <button className="inline-action" type="button" onClick={() => onNavigate('#login')}>Log in</button>}</p>}{showForm && user && <ReviewForm productId={id} userId={user.id} existing={editingId ? reviews.find((review) => review.id === editingId) : undefined} onSaved={afterSave} onCancel={() => { setShowForm(false); setEditingId(undefined) }} />}{stats.count > 0 && <div className="reviews-toolbar"><span>{stats.count} review{stats.count === 1 ? '' : 's'}</span><select value={sort} onChange={(event) => setSort(event.target.value)} aria-label="Sort reviews"><option value="recent">Most recent</option><option value="highest">Highest rated</option><option value="lowest">Lowest rated</option></select></div>}{reviewsLoading ? <p className="state-message">Loading reviews...</p> : reviewsError ? <p className="state-message form-error">{reviewsError}</p> : sortedReviews.length ? <div className="review-list">{sortedReviews.map((review) => <ReviewCard key={review.id} review={review} canManage={review.user_id === user?.id} onEdit={() => { setEditingId(review.id); setShowForm(true) }} onDelete={() => void removeReview(review.id)} />)}</div> : <p className="state-message">No reviews yet. Be the first to share your experience.</p>}<div className="rating-distribution">{[5, 4, 3, 2, 1].map((star) => <div key={star}><span>{star} stars</span><i><b style={{ width: `${stats.count ? (stats.distribution[star] / stats.count) * 100 : 0}%` }} /></i><strong>{stats.distribution[star]}</strong></div>)}</div></section></main>
+}

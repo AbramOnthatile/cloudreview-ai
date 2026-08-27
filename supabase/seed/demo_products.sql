@@ -1,0 +1,12 @@
+insert into public.products (name, brand, category, description, image_url, price, source)
+values
+  ('Auraloop QuietBand', 'Auraloop', 'Electronics', 'Wireless headphones designed for focused listening and comfortable long sessions.', 'https://placehold.co/800x600/d9e6c6/19211d?text=Auraloop+QuietBand', 129.00, 'CloudReview demo catalog'),
+  ('Keyloom Studio 75', 'Keyloom', 'Gaming', 'A compact mechanical keyboard with warm backlighting and a sturdy aluminum frame.', 'https://placehold.co/800x600/cbdde1/19211d?text=Keyloom+Studio+75', 89.00, 'CloudReview demo catalog'),
+  ('Nexa One Mini', 'Nexa', 'Phones', 'A fictional everyday smartphone with a bright display and dependable battery.', 'https://placehold.co/800x600/e7cfc5/19211d?text=Nexa+One+Mini', 349.00, 'CloudReview demo catalog'),
+  ('Northstar Air 14', 'Northstar', 'Laptops', 'A lightweight demo laptop for writing, browsing, and everyday creative work.', 'https://placehold.co/800x600/e7edb8/19211d?text=Northstar+Air+14', 799.00, 'CloudReview demo catalog'),
+  ('Melo Arc Speaker', 'Melo', 'Electronics', 'A small Bluetooth speaker tuned for clear sound in kitchens and living rooms.', 'https://placehold.co/800x600/d7d2c5/19211d?text=Melo+Arc+Speaker', 79.00, 'CloudReview demo catalog'),
+  ('Framewise 27', 'Framewise', 'Gaming', 'A fictional 27-inch monitor with a crisp panel for games and focused work.', 'https://placehold.co/800x600/bfd4c7/19211d?text=Framewise+27', 249.00, 'CloudReview demo catalog'),
+  ('Brewmark One', 'Brewmark', 'Appliances', 'A simple countertop coffee machine made for repeatable morning brewing.', 'https://placehold.co/800x600/e4c7b8/19211d?text=Brewmark+One', 119.00, 'CloudReview demo catalog'),
+  ('Glidepoint M2', 'Glidepoint', 'Gaming', 'A lightweight wireless gaming mouse with a quiet scroll wheel.', 'https://placehold.co/800x600/d6e2b7/19211d?text=Glidepoint+M2', 59.00, 'CloudReview demo catalog'),
+  ('Daytrail Pack 18', 'Daytrail', 'Fashion', 'A fictional everyday backpack with a padded laptop sleeve and weather-resistant shell.', 'https://placehold.co/800x600/c7d9dc/19211d?text=Daytrail+Pack+18', 74.00, 'CloudReview demo catalog'),
+  ('Tempo Loop', 'Tempo', 'Electronics', 'A friendly demo smartwatch for activity, notifications, and daily routines.', 'https://placehold.co/800x600/e2d0c2/19211d?text=Tempo+Loop', 159.00, 'CloudReview demo catalog');
